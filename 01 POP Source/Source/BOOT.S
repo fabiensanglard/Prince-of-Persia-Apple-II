@@ -105,15 +105,18 @@ endsourc ds 2
  dend
 *-------------------------------
  ds $900-*
+                                              ;  = skip the remaining bytes until $900
+                                              ;  after this pseudo instruction we are at address $900
 
-stage2 stx slot
+stage2 stx slot                               ;   save slot number for later
 
  jsr check128k ;check for 128K memory
 
- jsr moverw18 ;& move RW18 to D000
-
+ jsr moverw18 ;& move RW18 to D000           
+                                              ;   copy the loaded RWTS into LC
+                                   
  lda #0
- sta lastrack
+ sta lastrack                                 ;   we know that we are on track #0
  sta $3f3
  sta $3f4 ;zero reset vector
 
@@ -132,24 +135,24 @@ stage2 stx slot
  jsr rw18
  hex c3,ee
 
- jmp $ee00
+ jmp $ee00                                   ;   jump to 'main' (possibly in TOPCTRL.S)
 
 *-------------------------------------------------
 * Check for AUX memory routine
 
 CHECKER lda #$EE
- sta $C005
+ sta $C005                                   ;   switch to aux memory
  sta $C003
- sta $0800
- lda $0C00
- cmp #$EE
+ sta $0800                                   ;   write to $800 in aux
+ lda $0C00                                   ;   is there memory at all (full 64kb)?
+ cmp #$EE                                    ;   different value ==> okay
  bne :0
- asl $0C00
+ asl $0C00                                   ;   do another test
  lda $0800
  cmp $0C00
- beq :1
+ beq :1                                      ;   if still similar ==> no real memory (just mirrored)
 :0 clc
-:1 sta $C004
+:1 sta $C004                                 ;   switch back to main memory
  sta $C002
  rts
 
@@ -162,47 +165,47 @@ CHECKEND = *-CHECKER
 *
 *-------------------------------
 check128k
- sta $c081
+ sta $c081                                   ;   switch on ROM
 
  lda $FBB3 ;Apple // family ID byte
- cmp #6
+ cmp #6                                      ;   this byte of the rom will always contain #6 on an Apple//e and later
  bne NOT128K ;Must be e/c/GS
 
  bit $C017
- bmi NOT128K
+ bmi NOT128K                                 ;   softswitch working?
 
- ldx #CHECKEND
+ ldx #CHECKEND                               ;   copy the checker program to the stack
 :0 lda CHECKER,X
  sta $180,X
  dex
  bpl :0
 
- jsr $180
- bcs NOT128K
+ jsr $180                                    ;   call the checker routine inside the stack
+ bcs NOT128K                                 ;   C = 1: error
 
- rts
+ rts                                         ;   otherwise okay
 
 *-------------------------------
 * Turn off drive and display message
 
 NOT128K ldx SLOT
- lda $C088,X
+ lda $C088,X                                 ; motor softswitch: turn off disk drive motor
 
- jsr text
- jsr home
+ jsr text                                    ; again set to text display page 1
+ jsr home                                    ; clear text screen
  lda #8
- jsr vtab
+ jsr vtab                                    ; set cursor to line 8 (vertical tabulator)
 
  ldy #0
 :0 lda MEMTEXT,Y
- beq *
- jsr cout
- cmp #$8D
+ beq *                                       ;   endless loop
+ jsr cout                                    ;   write char on the screen
+ cmp #$8D                                    ;   return code
  bne :1
  lda #4
- sta $24
+ sta $24                                     ;   move cursor
 :1 iny
- bne :0
+ bne :0                                      ;   branch always
 
 MEMTEXT hex 8D
  asc "REQUIRES A //C OR //E WITH 128K"
@@ -216,9 +219,9 @@ moverw18
  bit $c08b
  bit $c08b ;rd/wrt RAM, 1st 4k bank
 
- lda #$d0
- ldx #$30
- ldy #$40
+ lda #$d0                                    ; destination address
+ ldx #$30                                    ;   source address
+ ldy #$40                                    ;   end of source address
 
 * a < x.y
 * 20 < 40.60 means 2000 < 4000.5fffm
@@ -228,7 +231,7 @@ movemem sta dest+1
  stx source+1
  sty endsourc+1
 
- ldy #0
+ ldy #0                     
  sty dest
  sty source
  sty endsourc
@@ -241,6 +244,7 @@ movemem sta dest+1
 
  inc source+1
  inc dest+1
+
 
  lda source+1
  cmp endsourc+1
