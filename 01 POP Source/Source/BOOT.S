@@ -222,7 +222,7 @@ moverw18
  lda #$d0                                    ; destination address
  ldx #$30                                    ;   source address
  ldy #$40                                    ;   end of source address
-                                             ; from $3000 to $4000 is $1000 of data = 1KB the exact size
+                                             ; from $3000 to $4000 is $1000 of data = 4KB: the exact size
                                              ; of the 1st 4k bank switch.
 * a < x.y
 * 20 < 40.60 means 2000 < 4000.5fffm
