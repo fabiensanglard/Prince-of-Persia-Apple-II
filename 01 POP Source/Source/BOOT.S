@@ -135,7 +135,7 @@ stage2 stx slot                               ;   save slot number for later
  jsr rw18
  hex c3,ee
 
- jmp $ee00                                   ;   jump to 'main' (possibly in TOPCTRL.S)
+ jmp $ee00                                   ;   jump to 'stage3' (in HIRES.S)
 
 *-------------------------------------------------
 * Check for AUX memory routine
