@@ -18,7 +18,7 @@ in0 = $fe89
 *-------------------------------
  org org
 
- hex 01
+ hex 01                                        ; FCS Instruct ROM Boot to load 1 sector at $800
 
 entry lda #$60
  sta entry
@@ -33,19 +33,20 @@ entry lda #$60
  sta $c00c ;80col off
  sta $c00e ;Altcharset off
  sta $c081 ;write RAM, read ROM (2nd 4k bank)
- jsr text
- jsr home
- jsr normal
- jsr pr0
- jsr in0
+                                               ; http://apple2.org.za/gswv/USA2WUG/FOUNDING.MEMBERS/HOME.PAGES/EDHEL/texts/pokes.html
+ jsr text                                      ; Clears Hi-res screen, Lo-res screen, and accumulator 
+ jsr home                                      ; Clear screen
+ jsr normal                                    ; set NORMAL mode 
+ jsr pr0                                       ; SETVID              Reset output to screen
+ jsr in0                                       ; Sets keyboard (http://mirrors.apple2.org.za/ground.icaen.uiowa.edu/Collections/1WSW/MEGA.PEEKS.AND.POKES.html)
 
- ldx SLOT
- txa
- lsr
- lsr
- lsr
- lsr
- ora #$c0
+ ldx SLOT                                      ; x <- %2b
+ txa                                           ; a <- x
+ lsr                                           ; Logical Shift Right
+ lsr                                           ; Logical Shift Right
+ lsr                                           ; Logical Shift Right
+ lsr                                           ; Logical Shift Right
+ ora #$c0                                      ; bitwise OR with Accumulator
  sta :rdsect+2
  lda #$0f
  sta sector
