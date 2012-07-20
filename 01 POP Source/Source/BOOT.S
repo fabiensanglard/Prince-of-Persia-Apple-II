@@ -18,10 +18,15 @@ in0 = $fe89
 *-------------------------------
  org org
 
- hex 01                                        ; FCS Instruct ROM Boot to load 1 sector at $800
+ hex 01                                        ; FCS Instruct ROM Boot to load 1 sector from the current positon (T=0,S=0 )at $800
 
 entry lda #$60
- sta entry
+ sta entry                                     ; patch $801 with instruction RTS (Hex code RTS = $60)
+                                               ; this will avoid going through the following
+                                               ; code again after a new sector was loaded
+                                               ; as the slot rom always jumps to address $801.
+                                               ; Now it will hit the RTS instruction there
+                                               ; and thus return to the JSR call at .rdsect instead.
 
  lda #$ff
  sta $4fb
@@ -35,10 +40,10 @@ entry lda #$60
  sta $c081 ;write RAM, read ROM (2nd 4k bank)
                                                ; http://apple2.org.za/gswv/USA2WUG/FOUNDING.MEMBERS/HOME.PAGES/EDHEL/texts/pokes.html
  jsr text                                      ; Clears Hi-res screen, Lo-res screen, and accumulator 
- jsr home                                      ; Clear screen
- jsr normal                                    ; set NORMAL mode 
- jsr pr0                                       ; SETVID              Reset output to screen
- jsr in0                                       ; Sets keyboard (http://mirrors.apple2.org.za/ground.icaen.uiowa.edu/Collections/1WSW/MEGA.PEEKS.AND.POKES.html)
+ jsr home                                      ; Clear screen and set cursor to left corner
+ jsr normal                                    ; set ROM cout routine to print normal characters
+ jsr pr0                                       ; set cout to print on text screen
+ jsr in0                                       ; set cin to read from the keyboard (http://mirrors.apple2.org.za/ground.icaen.uiowa.edu/Collections/1WSW/MEGA.PEEKS.AND.POKES.html)
 
  ldx SLOT                                      ; x <- $2b
  txa                                           ; a <- x
@@ -46,29 +51,41 @@ entry lda #$60
  lsr                                           ; Logical Shift Right
  lsr                                           ; Logical Shift Right
  lsr                                           ; Logical Shift Right
- ora #$c0                                      ; bitwise OR with Accumulator
- sta :rdsect+2
+ ora #$c0                                      ; bitwise OR with Accumulator: if the boot sector was loaded from slot #6 this will yield $c6
+ sta :rdsect+2                                 ; patch the address high byte of the JSR instruction
  lda #$0f
- sta sector
+ sta sector                                    ; read sectors 15 down to 1
 
-:0 ldy sector
- lda skewtbl,y
- sta $3d
- lda sectaddr,y
+                                               ; read sector loop
+
+:0 ldy sector                                  ; Counter is in page 0 at $05. Count remaining sectors to load
+ lda skewtbl,y                                 ; skewing look-up table. Also known as interleave
+                                               ; see: "http://en.wikipedia.org/wiki/Interleaving" for more detail on that
+ sta $3d                                       ; sector number
+                   
+ lda sectaddr,y                                ; if 0 then skip this sector
  beq :1
- sta $27
-:rdsect jsr $005c
-:1 dec sector
+ sta $27                                       ; high byte of load address
+:rdsect jsr $005c                              ; this instruction will be patched
+                                               ; If the slot is #6 this instruction will become
+                                               ; JSR $c65c
+                                               ; At this address the slot rom will load another disk sector
+:1 dec sector                                  ; sector counter--
  bne :0
 
  lda SLOT
- jmp $900
+ jmp $900                                      ; Jump to boot stage2. A ds directive makes sure stage2 is at $900
 
-skewtbl hex 00,0d,0b,09,07,05,03,01
+skewtbl hex 00,0d,0b,09,07,05,03,01            ; This is a standard DOS skewing table
  hex 0e,0c,0a,08,06,04,02,0f
 
-sectaddr hex 00,09,00,00,00,00,00,00
+sectaddr hex 00,09,00,00,00,00,00,00           ; These are the addresses (high byte) where the sectors are loaded
  hex 30,31,32,33,34,00,00,00
+
+
+
+
+
 
 *===============================
 *  boot stage 2
