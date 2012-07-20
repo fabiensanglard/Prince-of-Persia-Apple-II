@@ -40,7 +40,7 @@ entry lda #$60
  jsr pr0                                       ; SETVID              Reset output to screen
  jsr in0                                       ; Sets keyboard (http://mirrors.apple2.org.za/ground.icaen.uiowa.edu/Collections/1WSW/MEGA.PEEKS.AND.POKES.html)
 
- ldx SLOT                                      ; x <- %2b
+ ldx SLOT                                      ; x <- $2b
  txa                                           ; a <- x
  lsr                                           ; Logical Shift Right
  lsr                                           ; Logical Shift Right
