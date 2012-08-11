@@ -1,0 +1,223 @@
+Bootstrap: Load T=0,S=0 at $800.
+
+RAM State:
+==========
+
+	$0900
+	$0800  BOOT.S stage1
+
+
+BOOT.S must load RWTS18 (and maybe other things) in the RAM.
+
+Track 0:
+
+   Sector 0d => $0900
+   Sector 0e => $3000
+   Sector 0c => $3100
+   Sector 0a => $3200
+   Sector 08 => $3300
+   Sector 06 => $3400
+   
+RAM State:
+==========
+	$3400  Sector 06
+	$3300  Sector 08
+	$3200  Sector 0a
+	$3100  Sector 0c
+	$3000  Sector 0e
+
+
+	$0900  Sector 0d 
+	$0800  BOOT.S stage1
+
+
+Then jmp $900, where BOOT.S stage2 is.
+
+RAM State:
+==========
+	$3400  Sector 06
+	$3300  Sector 08
+	$3200  Sector 0a
+	$3100  Sector 0c
+	$3000  Sector 0e
+
+
+	$0900  BOOT.S stage2
+	$0800  BOOT.S stage1
+
+Stage2:
+  - checks for 128K Memory.
+  - Transfer rwts18 from $3000 to $d000
+
+RAM State:
+==========
+
+      Main RAM                   lc ( bank 1) 
+       							$e000
+                                    ...
+							    $d400  RWTS18            
+								$d300  RWTS18
+								$d200  RWTS18
+								$d100  RWTS18
+								$d000  RWTS18 
+
+
+
+	$3400  RWTS18            
+	$3300  RWTS18
+	$3200  RWTS18
+	$3100  RWTS18
+	$3000  RWTS18                   
+
+
+	$0900  BOOT.S stage2
+	$0800  BOOT.S stage1
+
+Now what stage2 does is unclear since it is using rwts18 with some parameters. But in the end it jumps to $ee00 (where probably is the content of HIRES.S.
+
+Q: If rwts18 is a track loader there must be something else loaded in memory, what is it ?
+Q: $ee00 is in Main RAM or in Auxiliary RAM Bank1 (a.k.a l.d a.k.a language card) ?
+
+
+Temp Answer: For now I am going to assume this is all stored in Auxiliary Memory (Language Card).
+
+First instruction in HIRES.S is:
+
+jmp boot3
+boot3 = $f880
+
+So I assume the content of MASTER.S is at $f880
+
+RAM State:
+==========
+
+      Main RAM                   lc ( bank 1) 
+
+                                $f880  MASTER.S
+                                $ee00  HIRES.S
+
+       							$e000
+                                    ...
+							    $d400  RWTS18            
+								$d300  RWTS18
+								$d200  RWTS18
+								$d100  RWTS18
+								$d000  RWTS18 
+
+
+
+	$3400  RWTS18            
+	$3300  RWTS18
+	$3200  RWTS18
+	$3100  RWTS18
+	$3000  RWTS18                   
+
+
+	$0900  BOOT.S stage2
+	$0800  BOOT.S stage1
+
+
+	First instruction in MASTER.S is:
+
+	jmp FIRSTBOOT
+
+	This is where stage3 is located.
+
+Many helper function to switch banks.
+
+
+First boot (stage3):
+Seems to be loading the highres tables 
+(Q: What are the tables ?)
+and hires routines in Auxiliary memory.
+
+jsr initsystem
+    TOPCTRL.S:INITSYSTEM
+       jsr setcenter
+       jsr setfastaux
+       jsr initgame * Initialize vars before starting game
+
+
+Then jump to the game loop which is called the ATTRACT MODE
+
+
+jmp AttractLoop
+
+
+MASTER.S
+ ATTRACTMODE
+ AttractLoop
+ jsr SetupDHires
+     jsr blackout
+     jmp LoadStage1A
+         jsr driveon
+         jsr ]lsub
+         jsr setmain
+         jsr rw18
+         jsr rw18
+         jsr loadmusic1
+         jsr setaux
+         jmp driveoff
+ jsr PubCredit
+ jsr AuthorCredit
+ jsr TitleScreen
+ jsr Prolog1
+ jsr PrincessScene
+ jsr SetupDHires
+ jsr Prolog2
+ jsr SilentTitle
+ jmp Demo
+
+Pressing a key will skip all that "attract" thing....Where is the trigger key -> routine ?
+
+jmp Demo
+    jsr blackout
+    jsr LoadStage3
+    jsr setdemolevel
+    jsr rdbluep
+    jsr driveoff
+    lda #0
+	jmp start
+
+
+
+Main Loop in in TOPCTRK.S
+
+MainLoop
+   jsr rnd
+   jsr demokeys
+   jmp START ;During demo, press any key to play
+   jsr misctimers
+   jsr NextFrame
+   jsr flashon
+   jsr FrameAdv ;Draw next frame & show it
+   jsr playback ;Play sounds
+   jsr zerosound ;& zero sound table
+   jsr flashoff
+   jsr songcues ;Play music
+
+   //Check if we need to jump to the next level
+   lda NextLevel
+   cmp level
+   beq MainLoop ;Continue until we change levels
+
+   jsr yellowcheck ;copy protect!
+   jmp LoadNextLevel
+
+Q: What is this yellowcheck copy protection mecanism ?
+yellowcheck
+ cmp #2
+ bne ]rts
+ jsr showtext
+ ldx #10
+ jmp yellow ;in gamebg
+    GAMEBQ.S
+        2nd level copy protection
+        signature check routine
+        
+
+ ;sets yellowflag ($7c) hibit
+
+
+
+
