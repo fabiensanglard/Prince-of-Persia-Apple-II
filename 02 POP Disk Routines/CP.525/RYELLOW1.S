@@ -6,25 +6,29 @@
 * NOTE: make sure the x register has a number
 * greater than 4 when calling YELLOW.
 
-YELLrun = $AAAA
+                                               ; This file apparently implements a secondary copy protection measure (outside of
+                                               ; RW1835 formatting), used only in the 5.25" diskette version of POP
 
-YELLOW
-:0 sec
- rol
- clc
- rol
- dex
- bne :0
- sta 4
+YELLrun = $AAAA                                ; this constant is not used, though $AAAA happens to be the address of the buffer
+                                               ; for the cleartext protection check routine
 
- jsr YELLsub
- jmp YELLnothing
+YELLOW                                         ; we just came in from outside (GAMEBG.S); start by doing some weird things...
+:0 sec                                         ; .. shift a 1 bit from the right into the accumulator
+ rol                                           ; .:
+ clc                                           ; .. shift a 0 bit from the right into the accumulator
+ rol                                           ; .:
+ dex                                           ; repeat the above shifts x times
+ bne :0                                        ; x >= 4 upon entry (see above!), so by now, a = binary 10101010 = #$AA
+ sta 4                                         ; byte at $0004 <- #$AA
+
+ jsr YELLsub                                   ; unscramble protection check routine and transfer control to it
+ jmp YELLnothing                               ; ? clear away traces of the cleartext routine ?
 
 *-------------------------------------------------
 
 YELLcode
- hex 27A26A0C5717236A8AAD0603AA8A3401
- hex 03A02F9E0C5717246A03012F9D03E92F
+ hex 27A26A0C5717236A8AAD0603AA8A3401          ; this 393-byte blob is a scrambled version of the code in YELLOW.MAIN.S
+ hex 03A02F9E0C5717246A03012F9D03E92F          ; (yes, I actually checked  -- tkchia 20130926)
  hex 9C032A2F9F6C9F5AF68AF8011AFD0F9B
  hex 63AD7A5B0AAA17266ABA51225AED637F
  hex 7A5E0AAA17266ABA51225A93634D7A5E
@@ -55,24 +59,25 @@ YELLlen = *-YELLcode
 
 * Routine to decode code
 
- hex 20 ;jsr
+ hex 20 ;jsr                                   ; ? junk byte to confuse linear sweep disassemblers ?
 
-YELLsub sta 5
- ldy #0
-:0 lda YELLcode,y
- eor 4
- sta (4),y
- inc 5
- lda YELLcode+256,y
- eor 4
+YELLsub sta 5                                  ; we came from YELLOW, so at this point, byte at $0004 = a = #$AA
+                                               ; after `sta 5', word at $0004 reads as #$AAAA
+ ldy #0                                        ; let the unscrambling begin!  note that
+:0 lda YELLcode,y                              ; - the unscrambling algorithm is simply to xor each byte with #$AA
+ eor 4                                         ; - the cleartext routine is written to a 512-byte buffer starting at $AAAA
+ sta (4),y                                     ; - the YELLcode blob is only 393 bytes long, but this routine overshoots the end
+ inc 5                                         ;   of the blob, and `unscrambles' 512 - 393 = 119 extra bytes
+ lda YELLcode+256,y                            ; - each loop iteration unscrambles 2 bytes, one from YELLcode,y and one from
+ eor 4                                         ;   YELLcode+256,y
  sta (4),y
  dec 5
  iny
  bne :0
- lda 4
- eor #$4C!$AA ;jmp instruction
- sta 3
- jmp 3
+ lda 4                                         ; ..
+ eor #$4C!$AA ;jmp instruction                 ;  : unscrambling done; construct the instruction `jmp $AAAA' at $0003
+ sta 3                                         ; .:
+ jmp 3                                         ; hand over to protection check routine
 
 *-------------------------------------------------
 
