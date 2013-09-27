@@ -7,7 +7,8 @@
 * greater than 4 when calling YELLOW.
 
                                                ; This file apparently implements a secondary copy protection measure (outside of
-                                               ; RW1835 formatting), used only in the 5.25" diskette version of POP
+                                               ; RW18 formatting), used only in the 5.25" diskette version of POP.  Another
+                                               ; secondary protection measure can be found in PURPLE.S.
 
 YELLrun = $AAAA                                ; this constant is not used, though $AAAA happens to be the address of the buffer
                                                ; for the cleartext protection check routine
