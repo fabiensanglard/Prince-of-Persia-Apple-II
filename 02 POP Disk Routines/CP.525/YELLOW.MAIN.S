@@ -5,6 +5,10 @@
 * set the high-bit of $7C in aux zpage.
 * (It does it by rotating in a carry set)
 
+                                               ; This is a copy protection check routine which is contained into RYELLOW1.S in
+                                               ; scrambled form.  (RYELLOW1.S is in turn included, via `put', by GAMEBG.S or
+                                               ; whatever its 5.25" equivalent is.)
+
 slot = $fd
 lastrack = $ff
 
@@ -38,8 +42,9 @@ zpagelen = 33 ;arbitrarily long (only needs 10)
 
 *-------------------------------------------------
 
-* Jordan says: use $A400-ABFF
-* Roland says: OK
+* Jordan says: use $A400-ABFF                  ; these comments may not be accurate -- the unscrambled check routine spans all the
+* Roland says: OK                              ; way from $AAAA to $AC32, and the unscrambling routine (YELLsub in RYELLOW1.S)
+                                               ; write stuff up to address $ACA9, 512 byte from $AAAA
 
 orgCHECK = $AAAA ;must be highbyte=lowbyte
 
@@ -63,7 +68,7 @@ start sta $C008 ;switch to main zpage
  ldx slot
  lda $C089,x ;drive on
 
- jsr swapzpage
+ jsr swapzpage                                 ; preserve contents of our scratch buffer in main zero page
 
 * First seek track zero
 
@@ -141,9 +146,17 @@ start sta $C008 ;switch to main zpage
 
 * A O K
 
-:GOOD jsr swapzpage
- sta $C009-zpagelen,x
- ror $7C-zpagelen,x
+:GOOD jsr swapzpage                            ; protection check passed
+                                               ; restore contents of our scratch buffer in main zero page
+ sta $C009-zpagelen,x                          ; switch to auxiliary zero page, and set high bit of $007C; these do the same things
+ ror $7C-zpagelen,x                            ; as            sta $C009
+                                               ;               sec
+                                               ;               ror $7C
+                                               ; but in a slightly obfuscated matter --
+                                               ;     9D E8 BF  sta $BFE8,x
+                                               ;     76 5B     ror $5B,x
+                                               ; -- by exploiting the facts that carry flag = 1 and x = #zpagelen after a call to
+                                               ; swapzpage
  clc
  rts
 
@@ -156,8 +169,10 @@ start sta $C008 ;switch to main zpage
 :NIBS db $FC,$EE,$EE,$FC
  db $E7,$EE,$FC,$E7
 
-:ERROR jsr swapzpage
- sta $C009-zpagelen,x
+:ERROR jsr swapzpage                           ; protection check failed
+                                               ; restore contents of our scratch buffer in main zero page
+ sta $C009-zpagelen,x                          ; switch to auxiliary zero page, but do not set high bit of $007C; as above, x =
+                                               ; #zpagelen
  rts
 
 *-------------------------------------------------
@@ -266,15 +281,15 @@ SEEK sta was2A
 
 *-------------------------------------------------
 
-swapzpage ldx #0
-:0 ldy zpagebuf,x
+swapzpage ldx #0                               ; swap the contents of the {zpagelen}-byte buffers at zpage ($0030) and zpagebuf
+:0 ldy zpagebuf,x                              ; ($A4A4); used to preserve and restore the relevant portion of the main zero page
  lda zpage,x
  sty zpage,x
  sta zpagebuf,x
  inx
  cpx #zpagelen
- bne :0
- rts
+ bne :0                                        ; upon return, x = #zpagelen = #33 and the carry flag is set; callers take advantage
+ rts                                           ; of this
 
 *-------------------------------------------------
 
