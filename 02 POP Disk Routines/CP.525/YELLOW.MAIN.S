@@ -44,7 +44,7 @@ zpagelen = 33 ;arbitrarily long (only needs 10)
 
 * Jordan says: use $A400-ABFF                  ; these comments may not be accurate -- the unscrambled check routine spans all the
 * Roland says: OK                              ; way from $AAAA to $AC32, and the unscrambling routine (YELLsub in RYELLOW1.S)
-                                               ; write stuff up to address $ACA9, 512 byte from $AAAA
+                                               ; writes stuff up to address $ACA9, 512 bytes from $AAAA
 
 orgCHECK = $AAAA ;must be highbyte=lowbyte
 
