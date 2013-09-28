@@ -152,7 +152,7 @@ start sta $C008 ;switch to main zpage
  ror $7C-zpagelen,x                            ; as            sta $C009
                                                ;               sec
                                                ;               ror $7C
-                                               ; but in a slightly obfuscated matter --
+                                               ; but in a slightly obfuscated manner --
                                                ;     9D E8 BF  sta $BFE8,x
                                                ;     76 5B     ror $5B,x
                                                ; -- by exploiting the facts that carry flag = 1 and x = #zpagelen after a call to
