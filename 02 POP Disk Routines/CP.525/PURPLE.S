@@ -4,8 +4,8 @@
 * if signature is found on track zero.
 
                                                ; This file apparently implements a secondary copy protection measure (outside of
-                                               ; RW18 formatting), used only in the 5.25" diskette version of POP.  Another
-                                               ; secondary protection measure can be found in RYELLOW1.S.
+                                               ; RW18 formatting), used only in the 5.25" diskette version of POP.  Two other
+                                               ; secondary protection checks are in POPBOOT0.S ("red herring") and RYELLOW1.S.
 
 PURPrun = $6321
 
