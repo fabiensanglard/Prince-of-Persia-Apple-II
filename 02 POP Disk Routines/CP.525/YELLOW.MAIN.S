@@ -8,6 +8,23 @@
                                                ; This is a copy protection check routine which is contained into RYELLOW1.S in
                                                ; scrambled form.  (RYELLOW1.S is in turn included, via `put', by GAMEBG.S or
                                                ; whatever its 5.25" equivalent is.)
+                                               ;
+                                               ; Googling for the magic bit pattern #$EE #$E7 #$FC #$EE #$E7 #$FC #$EE #$EE #$FC
+                                               ; used in the code leads us to
+                                               ;
+                                               ;   http://textfiles.com/apple/CRACKING/asstcracks1.txt
+                                               ;
+                                               ; This describes the bit pattern's use in a "bit slip" (a.k.a. "bit insertion")
+                                               ; copy protection technique:
+                                               ;
+                                               ;       / E7   \**/  E7  \/  E7  \*/  E7  \**/  E7  \/  E7  \*/  E7  \*/  E7  \
+                                               ;   11101110011100111001111110011101110011100111001111110011101110011101110011111100 
+                                               ;   \ EE   / \  E7  /  \  FC  /\   EE / \  E7  /  \  FC  /\  EE  / \  EE  / \  FC  /
+                                               ;
+                                               ; This suggests strongly that the 5.25" Prince of Persia used this "bit slip" copy
+                                               ; protection.  However, the only way to be sure (and to figure out the actual
+                                               ; contents of the magic sector) is to get the actual 5.25" disk as well as hardware
+                                               ; that can read it.
 
 slot = $fd
 lastrack = $ff
@@ -22,7 +39,7 @@ lastrack = $ff
 *
 *-------------------------------------------------
 
-OBJSCT = $07 ;PHYSICAL SECTOR #
+OBJSCT = $07 ;PHYSICAL SECTOR #                ; track 0, sector 7 is where we expect to find the magic bit pattern
 
 * ZERO PAGE
 
@@ -77,16 +94,16 @@ start sta $C008 ;switch to main zpage
 
 * Now check signature
 
- lda #10
+ lda #10                                       ; initialize variables
  sta LSRETRY
- ldx slot
- lda $C08E,X
+ ldx slot                                      ; ..
+ lda $C08E,X                                   ; .: set drive to input mode (Q7L, Read or Sense Write Protect)
  lda #>:NIBS
  sta NPTRH
  lda #:NIBS
  sta NPTR
 
-:AGAIN lda #$80
+:AGAIN lda #$80                                ; scan for an Address Field with sector number = #7
  sta PRETRY
 :M1 dec PRETRY
  beq :LSFAIL
@@ -96,8 +113,8 @@ start sta $C008 ;switch to main zpage
  cmp #OBJSCT
  bne :M1
 
- ldy #0
-:M2 lda $C08C,X
+ ldy #0                                        ; scan for the #$D5 byte that begins the corresponding Data Field; expect it to be
+:M2 lda $C08C,X                                ; within 256 bytes of the 4-and-4 encoded sector number
  bpl :M2
  dey
  beq :LSFAIL
@@ -105,14 +122,14 @@ start sta $C008 ;switch to main zpage
  bne :M2
  ldy #0
 
-:M3 lda $C08C,X
- bpl :M3
+:M3 lda $C08C,X                                ; scan for an #$E7 byte in the 6-and-2 encoded data in the Data Field; expect it
+ bpl :M3                                       ; to be within 256 bytes of the Data Field's #$D5 byte
  dey
  beq :LSFAIL
  cmp #$E7
  bne :M3
 
-:M4 lda $C08C,X
+:M4 lda $C08C,X                                ; the #$E7 should be followed by two more #$E7's
  bpl :M4
  cmp #$E7
  bne :LSFAIL
@@ -122,11 +139,13 @@ start sta $C008 ;switch to main zpage
  cmp #$E7
  bne :LSFAIL
 
- lda $C08D,X
- ldy #$10
- bit $6 ;3 US. ( FOR //C)
-:M6 lda $C08C,X
- bpl :M6
+                                               ; ? desynchronize the read mechanism -- make it overshoot past the first few 1 bits
+                                               ; in the next encoded byte: ?
+ lda $C08D,X                                   ; - momentarily switch from Read mode (Q7L + Q6L) to Sense Write Protect (Q7L + Q6H)
+ ldy #$10                                      ; - set y <- #$10, which adds a few clock cycles of delay
+ bit $6 ;3 US. ( FOR //C)                      ; - throw in yet more clock cycles for good measure
+:M6 lda $C08C,X                                ; resume scanning for bytes, in a desynchronized state; expect an #$EE within the
+ bpl :M6                                       ; next 16 bytes
  dey
  beq :LSFAIL
  cmp #$EE
@@ -134,9 +153,9 @@ start sta $C008 ;switch to main zpage
 
 * NOW AT 1/2 NIBBLES
 
- ldy #7
-:M7 lda $C08C,X * READ DISK DATA
- bpl :M7
+ ldy #7                                        ; after the #$EE byte, expect the next 8 bytes from the desynchronized read to be
+:M7 lda $C08C,X * READ DISK DATA               ; #$E7 #$FC #$EE #$E7 #$FC #$EE #$EE #$FC; note that the NIBS array, read indirectly
+ bpl :M7                                       ; via (NPTR), is accessed in _reverse_ order
  cmp (NPTR),Y * COMPARE AGAINST TABLE
  bne :LSFAIL
  dey
