@@ -145,7 +145,7 @@ start sta $C008 ;switch to main zpage
  ldy #$10                                      ; - set y <- #$10, which adds a few clock cycles of delay
  bit $6 ;3 US. ( FOR //C)                      ; - throw in yet more clock cycles for good measure
 :M6 lda $C08C,X                                ; resume scanning for bytes, in a desynchronized state; expect an #$EE within the
- bpl :M6                                       ; next 16 bytes
+ bpl :M6                                       ; next 15 bytes
  dey
  beq :LSFAIL
  cmp #$EE
