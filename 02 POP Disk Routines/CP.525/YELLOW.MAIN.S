@@ -9,8 +9,12 @@
                                                ; scrambled form.  (RYELLOW1.S is in turn included, via `put', by GAMEBG.S or
                                                ; whatever its 5.25" equivalent is.)
                                                ;
+                                               ; In brief:  On an original diskette, one of the sectors is written in a special
+                                               ; way, and the check routines tries to look for the magic property in the particular
+                                               ; sector.
+                                               ;
                                                ; Googling for the magic bit pattern #$EE #$E7 #$FC #$EE #$E7 #$FC #$EE #$EE #$FC
-                                               ; used in the code leads us to
+                                               ; used in the checking code leads us to a write-up by Michael Kelsey:
                                                ;
                                                ;   http://textfiles.com/apple/CRACKING/asstcracks1.txt
                                                ;
@@ -21,10 +25,9 @@
                                                ;   11101110011100111001111110011101110011100111001111110011101110011101110011111100 
                                                ;   \ EE   / \  E7  /  \  FC  /\   EE / \  E7  /  \  FC  /\  EE  / \  EE  / \  FC  /
                                                ;
-                                               ; This suggests strongly that the 5.25" Prince of Persia used this "bit slip" copy
-                                               ; protection.  However, the only way to be sure (and to figure out the actual
-                                               ; contents of the magic sector) is to get the actual 5.25" disk as well as hardware
-                                               ; that can read it.
+                                               ; The magic property here is the existence of extraneous "self-sync" 0 bits (*, **)
+                                               ; right inside the Data Field; such extra bits normally occur only in non-data gaps
+                                               ; between fields.
 
 slot = $fd
 lastrack = $ff
