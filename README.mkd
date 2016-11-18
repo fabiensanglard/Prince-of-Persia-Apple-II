@@ -1,3 +1,23 @@
+My analysis of copy protection routines in Jordan Mechner's Prince of Persia (Apple II) code, as well as some of the Easter eggs (but not yet all...).
+
+PoP apparently uses a ["bit slip"](http://textfiles.com/apple/CRACKING/asstcracks1.txt) copy protection method, with track 0, sector 7 laid out specially with a hidden bit pattern.  The PoP code micro-manages the disk controller in order to read the sector in a non-standard way and discover the bit pattern.
+
+The use of "bit slip" protection is *in addition to* the RW18 formatting as [described by Sanglard](http://fabiensanglard.net/prince_of_persia/pop_boot.php).
+
+See
+
+  * [`RYELLOW1.S`](./02%20POP%20Disk%20Routines/CP.525/RYELLOW1.S) and [`YELLOW.MAIN.S`](./02%20POP%20Disk%20Routines/CP.525/YELLOW.MAIN.S) -- "yellow" checking code
+  * [`PURPLE.S`](./02%20POP%20Disk%20Routines/CP.525/PURPLE.S) and [`PURPLE.MAIN.S`](./02%20POP%20Disk%20Routines/CP.525/PURPLE.MAIN.S) -- "purple" checking code
+  * [`POPBOOT0.S`](./02%20POP%20Disk%20Routines/CP.525/POPBOOT0.S) -- "red herring" checking code, plus Easter eggs at bootup
+
+I also made a [screencast](./easter-eggs.ogv) of the Easter eggs in `POPBOOT0.S` under the LinApple emulator, in Ogg Theora format.
+
+-- TK
+
+(Original `README.mkd` text by Mechner follows.)
+
+---
+
 Some background: This archive contains the source code for the original Prince of Persia game that I wrote on the Apple II, in 6502 assembly language, between 1985-89. The game was first released by Broderbund Software in 1989, and is part of the ongoing Ubisoft game franchise.
 
 For a capsule summary of Prince of Persia's 25-year history, and my involvement with its various incarnations, see [jordanmechner.com/prince-of-persia] (http://jordanmechner.com/prince-of-persia) and [jordanmechner.com/bio] (http://jordanmechner.com/bio).
