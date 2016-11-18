@@ -2,6 +2,9 @@
 
  lst off
 
+                                               ; This file implements another instance of the "bit slip" check (see
+                                               ; YELLOW.MAIN.S).  It is embedded in PURPLE.S with its bytes in reverse order.
+
 * The job of this routine is to set $DA to $01
 *                                ( in aux-zpage!!! )
 

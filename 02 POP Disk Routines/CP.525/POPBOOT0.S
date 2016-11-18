@@ -475,6 +475,19 @@ oscsh sec
 
 *-------------------------------------------------
 
+                                                ; Easter eggs! Peter Ferrie (pferrie.host22.com/misc/lowlevel14.htm)
+                                                ; says,
+                                                ;
+                                                ;   "Before booting, hold both Apple keys, then press:
+                                                ;      DEL      only on //GS, displays an oscilloscope
+                                                ;               use arrow keys to increase/decrease amplitude, space to
+                                                ;               change orientation, escape to quit
+                                                ;      !        displays a message, and then a lores animation
+                                                ;      RETURN   continally draws a fractal, press 'c' to change colours
+                                                ;      @        displays a bouncing, spinning cube
+                                                ;      ^        pulse the drive head, move joystick to change tone,
+                                                ;               sounds like a motorcycle"
+
 yippee ldx SLOT
  lda $C061
  bpl ]rts
@@ -491,7 +504,8 @@ yippee ldx SLOT
  iny
  lda :dispatch,y
  beq ]rts
-:cmp cmp #$11
+:cmp cmp #$11                                   ; the immediate operand (#$11) will have been replaced above with the
+                                                ; keystroke's ASCII code -- or'd with #$80
  bne :loop
 
  lda :dispatch+1,y

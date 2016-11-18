@@ -3,20 +3,25 @@
 * This code sets $DA in aux mem to 1
 * if signature is found on track zero.
 
+                                               ; This file apparently implements a secondary copy protection measure (outside of
+                                               ; RW18 formatting), used only in the 5.25" diskette version of POP.  Two other
+                                               ; secondary protection checks are in POPBOOT0.S ("red herring") and RYELLOW1.S.
+
 PURPrun = $6321
 
 PURPLE
- ldy #PURPrun
+ ldy #PURPrun                                  ; <y, a> <- <low half, high half> of address of buffer to unscramble into
  lda #>PURPrun
 
- jsr PURPsub
- jsr PURPjmp
+ jsr PURPsub                                   ; unscramble the protection check routine
+ jsr PURPjmp                                   ; call the protection check routine
+                                               ; ? and then fall through to the `rts' ?
 
 * Note: first byte of next junk must be $60 (rts)
 *-------------------------------------------------
 
 PURPcode
- hex 60386018EAA8E7108849450040994825
+ hex 60386018EAA8E7108849450040994825          ; this 249-byte blob is a scrambled version of the code in PURPLE.MAIN.S
  hex FB10C08CBD48852AFB10C08CBD498500
  hex A9E7D096C9FB10C08CBD03A0F2D0AAC9
  hex FB10C08CBDEAF0D0D5C9FB10C08CBD3D
@@ -42,14 +47,14 @@ PURPlen = *-PURPcode
  hex 20
 
 PURPsub
- sty 4
+ sty 4                                         ; store the destination buffer address in the word at $0004
  sta 5
 
  ldy #0
 
  ldx #PURPlen
-:0 dex
- lda PURPcode,x
+:0 dex                                         ; unscramble: simply copy the bytes in PURPcode to the destination buffer, except
+ lda PURPcode,x                                ; in reverse order (last byte comes first, second last comes second, etc.)
  sta (4),y
  iny
  bne :0
